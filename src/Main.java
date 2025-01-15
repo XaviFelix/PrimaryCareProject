@@ -57,14 +57,15 @@ public class Main {
     public static void employeeDashboard(String employeeRole) {
         System.out.println("\nWelcome to the White Memorial Primary Care Hospital");
         boolean isRunning = true;
+        Scanner scan = new Scanner(System.in);
         while (isRunning) {
             switch (employeeRole) {
                 case "Doctor":
-                    System.out.println("Here is a list of your db operations Doctor");
+                    doctorPrompt(scan);
                     isRunning = false;
                     break;
                 case "Admin":
-                    System.out.println("Here is a list of your db operations Admin");
+                    adminPrompt();
                     isRunning = false;
                     break;
                 default:
@@ -75,13 +76,44 @@ public class Main {
     }
 
     // Set of operations for a Doctor
-    public static void doctorPrompt() {
-        System.out.println("Here is a list of your db operations Doctor");
-        System.out.println("1) Register a new patient");
-        System.out.println("2) List all your patients");
-        System.out.println("3) Assign a non-primary doctor to your existing patient");
-        System.out.println("4) Order and Perform treatment for your patient");
-        System.out.println("5) Set discharge date of a patient");
+    public static void doctorPrompt(Scanner scan) {
+        boolean isRunning = true;
+        while(isRunning) {
+            // Prompt
+            System.out.println("Here is a list of your db operations Doctor");
+            System.out.println("1) Register a new patient"); //
+            System.out.println("2) List all your patients");
+            System.out.println("3) Assign a non-primary doctor to your existing patient");
+            System.out.println("4) Order and Perform treatment for your patient");
+            System.out.println("5) Set discharge date of a patient");
+            System.out.println("Press q to log out");
+
+            // Operations
+            String choice = scan.nextLine();
+            switch (choice) {
+                case "1":
+                    System.out.println("Registering new patient\n");
+                    break;
+                case "2":
+                    System.out.println("Listing all your pateints\n");
+                    break;
+                case "3":
+                    System.out.println("Assigning a non-primary doctor to your existing patient\n");
+                    break;
+                case "4":
+                    System.out.println("Ordering and Perfroming treatment to your patient\n");
+                case "5":
+                    System.out.println("Setting discharge date of a patient\n");
+                    break;
+                case "q":
+                    System.out.println("Logging out, have a nice day!\n");
+                    isRunning = false;
+                    break;
+                default:
+                    System.out.println("Invalid option, please try again\n");
+                    break;
+            }
+        }
     }
 
     // Set of operations for an Admin
