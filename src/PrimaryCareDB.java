@@ -76,6 +76,70 @@ public class PrimaryCareDB {
 
     } // End of insertNewPatient
 
+    // order a treatment for a patient given a patient ID
+    // NEEDS TESTING
+    public void orderTreatment(int doctorID, int patientID) {
+        String medicationType = "Medication";
+        String notes = getDoctorNotes();
+        String orderTreatmentSQL = "INSERT INTO " +
+                "treatment " +
+                "(treatment_type, notes, order_date, ordered_by_doctor_id, admission_id) " +
+                "VALUES (?, ?, NOW(), ?, ?)";
+
+
+
+        try(Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+            PreparedStatement statement = connection.prepareStatement(orderTreatmentSQL)) {
+
+            int admissionID = getAdmissionID(connection, patientID);
+
+            statement.setString(1, medicationType);
+            statement.setString(2, notes);
+            statement.setInt(3, doctorID);
+            statement.setInt(4, admissionID);
+            statement.executeUpdate();
+
+        } catch (SQLException e) {
+            System.err.println("Error creating admission table: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public int getAdmissionID(Connection connection, int patientID) {
+        int id = -1;
+
+        String patientIDSQL = "SELECT admission_id " +
+                "FROM admission " +
+                "WHERE patient_id = ? AND discharge_date IS NULL " +
+                "ORDER BY admission_date DESC " +
+                "LIMIT 1";
+
+        try (PreparedStatement statement = connection.prepareStatement(patientIDSQL)) {
+
+            statement.setInt(1, patientID);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    id = resultSet.getInt("admission_id");
+                    System.out.println("getAdmissionID() -> Current retrieved admission ID: " + id);
+                } else {
+                    System.out.println("No active admission found for patient ID: " + patientID);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching admission ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return id;
+    }
+
+    public String getDoctorNotes() {
+        Scanner scan = new Scanner(System.in);
+        System.out.println("Enter treatment notes: ");
+
+        return scan.nextLine();
+    }
+
     public void createAdmission(Connection connection, int patientID, int roomNumber, int primaryDocID, int adminID) {
             String admissionSQL = "INSERT INTO admission (patient_id, room_number, admission_date, primary_doctor_id, initial_diagnosis, admitted_by_employee_id) "
                                    + "VALUES (?, ?, NOW(), ?, ?, ?)";
@@ -163,13 +227,16 @@ public class PrimaryCareDB {
                 "    a.admission_date, " +
                 "    a.initial_diagnosis, " +
                 "    e.first_name AS doctor_first_name, " +
-                "    e.last_name AS doctor_last_name " +
+                "    e.last_name AS doctor_last_name, " +
+                "    t.notes AS treatment_notes " + // Added treatment notes
                 "FROM " +
                 "    Admission a " +
                 "JOIN " +
                 "    Patient p ON a.patient_id = p.patient_id " +
                 "JOIN " +
                 "    Employee e ON a.primary_doctor_id = e.employee_id " +
+                "LEFT JOIN " +
+                "    Treatment t ON a.admission_id = t.admission_id " + // Join Treatment table
                 "WHERE " +
                 "    e.role = 'Doctor' AND e.employee_id = ?;";
 
@@ -190,10 +257,12 @@ public class PrimaryCareDB {
                     String initialDiagnosis = resultSet.getString("initial_diagnosis");
                     String doctorFirstName = resultSet.getString("doctor_first_name");
                     String doctorLastName = resultSet.getString("doctor_last_name");
+                    String treatmentNotes = resultSet.getString("treatment_notes");
 
                     // Print to terminal
-                    System.out.printf("Patient ID: %d, Name: %s %s, Admission Date: %s, Diagnosis: %s, Doctor: %s %s%n",
+                    System.out.printf("Patient ID: %d, Name: %s %s, Admission Date: %s, Diagnosis: %s, Treatment Notes: %s, Doctor: %s %s%n",
                             patientId, patientFirstName, patientLastName, admissionDate, initialDiagnosis,
+                            (treatmentNotes != null ? treatmentNotes : "No treatment notes"), // Handle null notes
                             doctorFirstName, doctorLastName);
                 }
             }
@@ -203,6 +272,8 @@ public class PrimaryCareDB {
             e.printStackTrace();
         }
     }
+
+
 
     // Needs more testing
     public boolean isHospitalFull() {

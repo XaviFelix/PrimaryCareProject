@@ -82,7 +82,7 @@ public class Main {
         int currentDoctorID = Integer.parseInt(employeeCredentials[0]);
         while(isRunning) {
             // Prompt
-            System.out.println("Here is a list of your db operations Doctor");
+            System.out.println("\nHere is a list of your db operations Doctor");
             System.out.println("1) Register a new patient"); //
             System.out.println("2) List all your patients");
             System.out.println("3) Assign a non-primary doctor to your existing patient");
@@ -135,6 +135,13 @@ public class Main {
                     break;
                 case "4":
                     System.out.println("Ordering and Perfroming treatment to your patient\n");
+                    // This is gonna need a prompt that orders a treatment for a specific patient
+                    // Doctor needs to input the patient ID for testing purposes:
+                    // THe id I will be using is ID: 16
+
+                    database.orderTreatment(currentDoctorID, 8); // creates treatment_id, must be Medication, modified description
+                    // database.performTreatment(); // creates treatment_id, must be Procedure, modify description
+                    break;
                 case "5":
                     System.out.println("Setting discharge date of a patient\n");
                     break;
