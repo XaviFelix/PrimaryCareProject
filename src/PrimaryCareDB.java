@@ -19,7 +19,11 @@ public class PrimaryCareDB {
             //return;
         }
 
-        // sql statement
+        // Get a vacant room number and then set it to occupied for the new patient to be inserted
+        int vacantRoomNumber = getVacantRoomNumber();
+        assignRoom(vacantRoomNumber);
+
+        // insert patient sql
         String insertSQL = "INSERT INTO patient (first_name, last_name, dob, emergency_contact_name, emergency_contact_phone, insurance_policy_num) "
                          + "VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -41,13 +45,15 @@ public class PrimaryCareDB {
                 System.out.println("A new patient was inserted successfully!");
             }
 
+
+
         } catch (SQLException e) {
             System.err.println("Error creating a new patient: " + e.getMessage());
             e.printStackTrace();
         }
     } // End of insertNewPatient
 
-    // Needs testing
+    // Needs more testing
     public boolean isHospitalFull() {
         String findVacantRoomSQL = "SELECT COUNT(*) AS occupied_count FROM room WHERE is_occupied = 1";
 
@@ -67,6 +73,50 @@ public class PrimaryCareDB {
             e.printStackTrace();
         }
         return false;
+    }
+
+    // Needs some testing
+    public int getVacantRoomNumber() {
+        String findVacantRoomSQL = "SELECT room_number FROM room WHERE is_occupied = 0 LIMIT 1";
+
+        try(Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+            PreparedStatement statement = connection.prepareStatement(findVacantRoomSQL)) {
+
+            ResultSet resultSet = statement.executeQuery();
+            if(resultSet.next()) {
+                int vacantRoomNumber = resultSet.getInt("room_number");
+
+                // Debug line, delete when finished testing;
+                System.out.println("Found a vacant room number: " + vacantRoomNumber);
+
+                return vacantRoomNumber;
+            } else {
+                System.out.println("No vacant rooms found!");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+    }
+
+    public void assignRoom(int vacantRoomNumber) {
+        String updateRoomSQL = "UPDATE room SET is_occupied = 1 WHERE room_number = ?";
+
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement statement = connection.prepareStatement(updateRoomSQL)) {
+
+            statement.setInt(1, vacantRoomNumber);
+            int rowsUpdated = statement.executeUpdate();
+
+            if (rowsUpdated > 0) {
+                System.out.println("Room " + vacantRoomNumber + " successfully assigned.");
+            } else {
+                System.out.println("Error: Room " + vacantRoomNumber + " could not be assigned.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
 
