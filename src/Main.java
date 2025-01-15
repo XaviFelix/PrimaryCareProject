@@ -23,7 +23,7 @@ public class Main {
         System.out.println("Login successful!");
 
         // Route user (employee) to their dashboard
-        employeeDashboard(employeeCredentials[3], database);
+        employeeDashboard(employeeCredentials, database);
 
 
     } // End of primaryCareUI()
@@ -55,14 +55,14 @@ public class Main {
     } // End of getEmployeeCredentials
 
     // This will have a switch statement and depending on the role their operations vary
-    public static void employeeDashboard(String employeeRole, PrimaryCareDB database) {
+    public static void employeeDashboard(String[] employeeCredentials, PrimaryCareDB database) {
         System.out.println("\nWelcome to the White Memorial Primary Care Hospital");
         boolean isRunning = true;
         Scanner scan = new Scanner(System.in);
         while (isRunning) {
-            switch (employeeRole) {
+            switch (employeeCredentials[3]) {
                 case "Doctor":
-                    doctorDashboard(scan, database);
+                    doctorDashboard(employeeCredentials, scan, database);
                     isRunning = false;
                     break;
                 case "Admin":
@@ -77,7 +77,7 @@ public class Main {
     } // End of employeeDashboard
 
     // Set of operations for a Doctor
-    public static void doctorDashboard(Scanner scan, PrimaryCareDB database) {
+    public static void doctorDashboard(String[] employeeCredentials, Scanner scan, PrimaryCareDB database) {
         boolean isRunning = true;
         while(isRunning) {
             // Prompt
@@ -115,6 +115,7 @@ public class Main {
 
                     // Invoke database operation to insert patient
                     database.insertNewPatient(
+                            Integer.parseInt(employeeCredentials[0]),
                             patientFirstName,
                             patientLastName,
                             patientDOB,

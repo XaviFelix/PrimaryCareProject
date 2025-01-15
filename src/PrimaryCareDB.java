@@ -8,7 +8,7 @@ public class PrimaryCareDB {
     private static final String PASSWORD = "12345";
 
     // Needs more work, This is just a test function:
-    public void insertNewPatient(String firstName, String lastName, String dob,
+    public void insertNewPatient(int doctorID, String firstName, String lastName, String dob,
                                  String emergencyContactName, String emergencyContactPhone,
                                  String insurancePolicyNum) {
 
@@ -20,8 +20,8 @@ public class PrimaryCareDB {
         }
 
         // Get a vacant room number and then set it to occupied for the new patient to be inserted
-        int vacantRoomNumber = getVacantRoomNumber();
-        assignRoom(vacantRoomNumber);
+//        int vacantRoomNumber = getVacantRoomNumber();
+//        assignRoom(vacantRoomNumber);
 
         // insert patient sql
         int patientID = -2; // This means nothing was invoked
@@ -64,15 +64,31 @@ public class PrimaryCareDB {
         //Debug purposes, delete when confident
         System.out.println("Current Patient ID: " + patientID);
         System.out.println("Current Admin ID: " + adminID);
+        System.out.println("Current Doctor ID: " + doctorID);
 
         // Here is where i create the admission details
+        // createAdmission() < - fill this in
 
 
     } // End of insertNewPatient
 
-    public void createAdmission() {
+    public void createAdmission(Connection connection, int patientID, int roomNumber, int primaryDocID, int adminID) {
             String admissionSQL = "INSERT INTO admission (patient_id, room_number, admission_date, primary_doctor_id, initial_diagnosis, admitted_by_employee_id) "
                                    + "VALUES (?, ?, NOW(), ?, ?, ?)";
+
+        try(PreparedStatement statement = connection.prepareStatement(admissionSQL)) {
+
+            statement.setInt(1, patientID);
+            statement.setInt(2, roomNumber);
+            statement.setInt(3, primaryDocID);
+
+
+        } catch (SQLException e) {
+            System.err.println("Error fetching administrator ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+
 
 
     } // End of createAdmission
@@ -89,7 +105,7 @@ public class PrimaryCareDB {
                 id = resultSet.getInt("employee_id");
 
                 //Delete this after some testing
-                System.out.println("This is the Admin id: " + id);
+                System.out.println("assignAdmin() -> This is the Admin id: " + id);
             } else {
                 throw new SQLException("No administrators found in the databse");
             }
@@ -118,7 +134,7 @@ public class PrimaryCareDB {
                 id = resultSet.getInt("patient_id");
 
                 //Delete this after some testing
-                System.out.println("This is the patient's id: " + id);
+                System.out.println("getRecentPatientID() -> This is the patient's id: " + id);
             }
             // test up to here for errors
 
