@@ -10,18 +10,20 @@ public class Main {
     }
 
     public static void primaryCareUI(PrimaryCareDB database) {
+        // Login the user (employee)
         boolean isAuthenticated = false;
+        String[] employeeCredentials = new String[4];
         while(!isAuthenticated) {
-            String[] employeeCredentials = getEmployeeCredentials();
+            employeeCredentials = getEmployeeCredentials(); // THis needs to be outside so that i can pass it to the dashboard
             isAuthenticated = database.verifyCredentials(employeeCredentials);
             if(!isAuthenticated) {
                 System.out.println("Invalid credentials. Enter them again or exit program 'ctrl + C'");
             }
         }
         System.out.println("Login successful!");
-        // Here we are finally in the database, start adding functinality here
-        //database.insertNewEmployee("Marcus", "Felix", "Doctor", "2025-01-15");
-        database.showEmployeeByID(2);
+        // Route user (employee) to their dashboard
+        employeeDashboard(employeeCredentials[3]);
+
 
     } // End of primaryCareUI()
 
@@ -51,5 +53,47 @@ public class Main {
 
     } // End of getEmployeeCredentials
 
+    // This will have a switch statement and depending on the role their operations vary
+    public static void employeeDashboard(String employeeRole) {
+        System.out.println("\nWelcome to the White Memorial Primary Care Hospital");
+        boolean isRunning = true;
+        while (isRunning) {
+            switch (employeeRole) {
+                case "Doctor":
+                    System.out.println("Here is a list of your db operations Doctor");
+                    isRunning = false;
+                    break;
+                case "Admin":
+                    System.out.println("Here is a list of your db operations Admin");
+                    isRunning = false;
+                    break;
+                default:
+                    System.out.println("Something went wrong with user's role, exiting db system");
+                    isRunning = false;
+            }
+        }
+    }
 
+    // Set of operations for a Doctor
+    public static void doctorPrompt() {
+        System.out.println("Here is a list of your db operations Doctor");
+        System.out.println("1) Register a new patient");
+        System.out.println("2) List all your patients");
+        System.out.println("3) Assign a non-primary doctor to your existing patient");
+        System.out.println("4) Order and Perform treatment for your patient");
+        System.out.println("5) Set discharge date of a patient");
+    }
+
+    // Set of operations for an Admin
+    public static void adminPrompt() {
+        System.out.println("Here is a list of your db operations Admin");
+        System.out.println("1) Order a treatment for your patient"); // timestamp is associated with the order
+        System.out.println("2) List all your patients");
+        System.out.println("3) Discharge a patient");
+    }
+
+    // General set of operations for every type of employee
+//    public static void generalPrompt() {
+//
+//    }
 }
