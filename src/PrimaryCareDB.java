@@ -24,6 +24,8 @@ public class PrimaryCareDB {
         assignRoom(vacantRoomNumber);
 
         // insert patient sql
+        int patientID = -2; // This means nothing was invoked
+        int adminID = -2; // This means nothing was invoked
         String insertSQL = "INSERT INTO patient (first_name, last_name, dob, emergency_contact_name, emergency_contact_phone, insurance_policy_num) "
                          + "VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -45,13 +47,87 @@ public class PrimaryCareDB {
                 System.out.println("A new patient was inserted successfully!");
             }
 
-
+            // Test this: ensures both
+            patientID = getRecentPatientID(connection);
+            adminID = assignAdmin(connection);
+            if(patientID == -1 && adminID == -1) {
+                System.out.println("Patient ID: " + patientID);
+                System.out.println("Admin ID: " + adminID);
+                throw new IllegalArgumentException("Retrieving ids resulted in a negative number");
+            }
 
         } catch (SQLException e) {
             System.err.println("Error creating a new patient: " + e.getMessage());
             e.printStackTrace();
         }
+
+        //Debug purposes, delete when confident
+        System.out.println("Current Patient ID: " + patientID);
+        System.out.println("Current Admin ID: " + adminID);
+
+        // Here is where i create the admission details
+
+
     } // End of insertNewPatient
+
+    public void createAdmission() {
+            String admissionSQL = "INSERT INTO admission (patient_id, room_number, admission_date, primary_doctor_id, initial_diagnosis, admitted_by_employee_id) "
+                                   + "VALUES (?, ?, NOW(), ?, ?, ?)";
+
+
+    } // End of createAdmission
+
+    // returns an int which is the admin id that will be used to set the fk of an admission
+    public int assignAdmin(Connection connection) {
+        int id = -1; // Returning this means something went wrong with the retrieval in sql statement
+
+        String adminIDSQL = "SELECT employee_id FROM employee WHERE role = 'Admin' ORDER BY RAND() LIMIT 1";
+        try(PreparedStatement statement = connection.prepareStatement(adminIDSQL);
+            ResultSet resultSet = statement.executeQuery()) {
+
+            if(resultSet.next()) {
+                id = resultSet.getInt("employee_id");
+
+                //Delete this after some testing
+                System.out.println("This is the Admin id: " + id);
+            } else {
+                throw new SQLException("No administrators found in the databse");
+            }
+            // test up to here for errors
+
+        } catch (SQLException e) {
+            System.err.println("Error fetching administrator ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return id;
+    } // End of assignAdmin
+
+    // I can't forget that this mainly used for after inserting a new patient,
+    // on the same connection, using it in a different context might produce logic errors
+    // This is because of the sql statement im using, using it for convenience, it has its cons
+    // finsih tihs method
+    public int getRecentPatientID(Connection connection) {
+        int id = -1; // Returning this means something went wrong with the retrieval in sql statement
+
+        String patientIDSQL = "SELECT LAST_INSERT_ID() AS patient_id";
+        try(PreparedStatement statement = connection.prepareStatement(patientIDSQL);
+            ResultSet resultSet = statement.executeQuery()) {
+
+            if(resultSet.next()) {
+                id = resultSet.getInt("patient_id");
+
+                //Delete this after some testing
+                System.out.println("This is the patient's id: " + id);
+            }
+            // test up to here for errors
+
+        } catch (SQLException e) {
+            System.err.println("Error fetching patient ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return id;
+    } // End of getRecentPatientID
 
     // Needs more testing
     public boolean isHospitalFull() {
@@ -73,7 +149,7 @@ public class PrimaryCareDB {
             e.printStackTrace();
         }
         return false;
-    }
+    } // End of isHospitalFull
 
     // Needs some testing
     public int getVacantRoomNumber() {
@@ -97,8 +173,8 @@ public class PrimaryCareDB {
             e.printStackTrace();
         }
 
-        return -1;
-    }
+        return -1; // Returning this means something went wrong with the retrieval in sql statement
+    } // End of getVacantRoomNumber
 
     public void assignRoom(int vacantRoomNumber) {
         String updateRoomSQL = "UPDATE room SET is_occupied = 1 WHERE room_number = ?";
@@ -117,7 +193,7 @@ public class PrimaryCareDB {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
+    } // End of assignRoom
 
 
     public void insertNewEmployee(String firstName, String lastName, String role,
@@ -144,84 +220,6 @@ public class PrimaryCareDB {
             e.printStackTrace();
         }
     } // End of insertNewEmployee
-
-    public String[] getEmployeeByID(int id) {
-        String sql = "SELECT * FROM employee WHERE employee_id = ?";
-        int employeeID;
-        String[] employeeData = new String[5];
-
-        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            // prepare the statement
-            statement.setInt(1, id);
-
-            // Execute the query
-            ResultSet resultSet = statement.executeQuery();
-
-            if(resultSet.next()) {
-                // Process the result set
-                employeeID = resultSet.getInt("employee_id");
-                employeeData[0] = Integer.toString(employeeID);
-                employeeData[1] = resultSet.getString("first_name");
-                employeeData[2] = resultSet.getString("last_name");
-                employeeData[3] = resultSet.getString("role");
-                employeeData[4] = resultSet.getString("hire_date");
-
-                // display to console for debug purposes: (delete when ready)
-                System.out.println("Employee ID: " + employeeData[0]);
-                System.out.println("First Name: " + employeeData[1]);
-                System.out.println("Last Name: " + employeeData[2]);
-                System.out.println("Role: " + employeeData[3]);
-                System.out.println("Hire Date: " + employeeData[4]);
-            }
-            else {
-                System.out.println("No employee found with ID: " + id);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error creating a new employee: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return employeeData;
-    }
-
-    public void showEmployeeByID(int id) {
-        String sql = "SELECT * FROM employee WHERE employee_id = ?";
-        int employeeID;
-        String[] employeeData = new String[4];
-
-        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            // prepare the statement
-            statement.setInt(1, id);
-
-            // Execute the query
-            ResultSet resultSet = statement.executeQuery();
-
-            if(resultSet.next()) {
-                // Process the result set
-                employeeID = resultSet.getInt("employee_id");
-                String firstName = resultSet.getString("first_name");
-                String lastName = resultSet.getString("last_name");
-                String role = resultSet.getString("role");
-                String hireDate = resultSet.getString("hire_date");
-
-                // display to console for debug purposes: (delete when ready)
-                System.out.println("Employee ID: " + employeeID);
-                System.out.println("First Name: " + firstName);
-                System.out.println("Last Name: " + lastName);
-                System.out.println("Role: " + role);
-                System.out.println("Hire Date: " + hireDate);
-            }
-            else {
-                System.out.println("No employee found with ID: " + id);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error creating a new employee: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
 
     // Purpose: validates employee credentials ensuring they exist in the database
     public boolean verifyCredentials(String[] employeeCredentials) {
