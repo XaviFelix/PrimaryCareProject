@@ -21,8 +21,9 @@ public class Main {
             }
         }
         System.out.println("Login successful!");
+
         // Route user (employee) to their dashboard
-        employeeDashboard(employeeCredentials[3]);
+        employeeDashboard(employeeCredentials[3], database);
 
 
     } // End of primaryCareUI()
@@ -54,18 +55,18 @@ public class Main {
     } // End of getEmployeeCredentials
 
     // This will have a switch statement and depending on the role their operations vary
-    public static void employeeDashboard(String employeeRole) {
+    public static void employeeDashboard(String employeeRole, PrimaryCareDB database) {
         System.out.println("\nWelcome to the White Memorial Primary Care Hospital");
         boolean isRunning = true;
         Scanner scan = new Scanner(System.in);
         while (isRunning) {
             switch (employeeRole) {
                 case "Doctor":
-                    doctorPrompt(scan);
+                    doctorDashboard(scan, database);
                     isRunning = false;
                     break;
                 case "Admin":
-                    adminPrompt();
+                    adminDashboard(scan);
                     isRunning = false;
                     break;
                 default:
@@ -73,10 +74,10 @@ public class Main {
                     isRunning = false;
             }
         }
-    }
+    } // End of employeeDashboard
 
     // Set of operations for a Doctor
-    public static void doctorPrompt(Scanner scan) {
+    public static void doctorDashboard(Scanner scan, PrimaryCareDB database) {
         boolean isRunning = true;
         while(isRunning) {
             // Prompt
@@ -93,9 +94,40 @@ public class Main {
             switch (choice) {
                 case "1":
                     System.out.println("Registering new patient\n");
+
+                    System.out.println("What is your patient's first name: ");
+                    String patientFirstName = scan.nextLine();
+
+                    System.out.println("What is your patient's last name: ");
+                    String patientLastName = scan.nextLine();
+
+                    System.out.println("What is your patient's date of birth: ");
+                    String patientDOB = scan.nextLine();
+
+                    System.out.println("What is their emergency contact's full name: ");
+                    String emergencyContactName = scan.nextLine();
+
+                    System.out.println("What is their emergency phone number (FORMAT: xxx-xxx-xxxx)");
+                    String emergencyPhoneNumber = scan.nextLine();
+
+                    System.out.println("What is your patient's insurance policy number: ");
+                    String insurancePolicyNumber = scan.nextLine();
+
+                    // Invoke database operation to insert patient
+                    database.insertNewPatient(
+                            patientFirstName,
+                            patientLastName,
+                            patientDOB,
+                            emergencyContactName,
+                            emergencyPhoneNumber,
+                            insurancePolicyNumber
+                    );
+
                     break;
                 case "2":
                     System.out.println("Listing all your pateints\n");
+
+                    // Invoke databse operation to list all of doctor's patients
                     break;
                 case "3":
                     System.out.println("Assigning a non-primary doctor to your existing patient\n");
@@ -117,7 +149,7 @@ public class Main {
     }
 
     // Set of operations for an Admin
-    public static void adminPrompt() {
+    public static void adminDashboard(Scanner scan) {
         System.out.println("Here is a list of your db operations Admin");
         System.out.println("1) Order a treatment for your patient"); // timestamp is associated with the order
         System.out.println("2) List all your patients");

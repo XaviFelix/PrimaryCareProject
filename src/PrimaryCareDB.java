@@ -11,6 +11,14 @@ public class PrimaryCareDB {
     public void insertNewPatient(String firstName, String lastName, String dob,
                                  String emergencyContactName, String emergencyContactPhone,
                                  String insurancePolicyNum) {
+
+        // CHECK IF HOSPITAL IS FULL FIRST (remove NOT operator after testing)
+        // SO that it doesn't insert a new patient and just returns
+        if(!isHospitalFull()){
+            System.out.println("The Hospital is not full");
+            //return;
+        }
+
         // sql statement
         String insertSQL = "INSERT INTO patient (first_name, last_name, dob, emergency_contact_name, emergency_contact_phone, insurance_policy_num) "
                          + "VALUES (?, ?, ?, ?, ?, ?)";
@@ -38,6 +46,29 @@ public class PrimaryCareDB {
             e.printStackTrace();
         }
     } // End of insertNewPatient
+
+    // Needs testing
+    public boolean isHospitalFull() {
+        String findVacantRoomSQL = "SELECT COUNT(*) AS occupied_count FROM room WHERE is_occupied = 1";
+
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement statement = connection.prepareStatement(findVacantRoomSQL);) {
+
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                int occupiedCount = resultSet.getInt("occupied_count");
+
+                //Debug purposes, delete when finished testing
+                System.out.println("Number of occupied rooms: " + occupiedCount);
+
+                return occupiedCount == 20;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
 
     public void insertNewEmployee(String firstName, String lastName, String role,
                                   String hireDate) {
