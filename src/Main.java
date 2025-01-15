@@ -79,6 +79,7 @@ public class Main {
     // Set of operations for a Doctor
     public static void doctorDashboard(String[] employeeCredentials, Scanner scan, PrimaryCareDB database) {
         boolean isRunning = true;
+        int currentDoctorID = Integer.parseInt(employeeCredentials[0]);
         while(isRunning) {
             // Prompt
             System.out.println("Here is a list of your db operations Doctor");
@@ -115,7 +116,7 @@ public class Main {
 
                     // Invoke database operation to insert patient
                     database.insertNewPatient(
-                            Integer.parseInt(employeeCredentials[0]),
+                            currentDoctorID,
                             patientFirstName,
                             patientLastName,
                             patientDOB,
@@ -127,8 +128,7 @@ public class Main {
                     break;
                 case "2":
                     System.out.println("Listing all your pateints\n");
-
-                    // Invoke databse operation to list all of doctor's patients
+                    database.showMyPatients(currentDoctorID);
                     break;
                 case "3":
                     System.out.println("Assigning a non-primary doctor to your existing patient\n");

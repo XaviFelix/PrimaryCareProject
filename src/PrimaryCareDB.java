@@ -1,4 +1,5 @@
 import java.sql.*;
+import java.util.Scanner;
 
 public class PrimaryCareDB {
 
@@ -20,8 +21,8 @@ public class PrimaryCareDB {
         }
 
         // Get a vacant room number and then set it to occupied for the new patient to be inserted
-//        int vacantRoomNumber = getVacantRoomNumber();
-//        assignRoom(vacantRoomNumber);
+        int vacantRoomNumber = getVacantRoomNumber();
+        assignRoom(vacantRoomNumber);
 
         // insert patient sql
         int patientID = -2; // This means nothing was invoked
@@ -56,6 +57,9 @@ public class PrimaryCareDB {
                 throw new IllegalArgumentException("Retrieving ids resulted in a negative number");
             }
 
+            // Test this!!
+            createAdmission(connection, patientID, vacantRoomNumber, doctorID, adminID);
+
         } catch (SQLException e) {
             System.err.println("Error creating a new patient: " + e.getMessage());
             e.printStackTrace();
@@ -77,21 +81,27 @@ public class PrimaryCareDB {
                                    + "VALUES (?, ?, NOW(), ?, ?, ?)";
 
         try(PreparedStatement statement = connection.prepareStatement(admissionSQL)) {
+            String diagnosis = getDoctorDiagnosis();
 
             statement.setInt(1, patientID);
             statement.setInt(2, roomNumber);
-            statement.setInt(3, primaryDocID);
-
+            statement.setInt(3, primaryDocID); // Test this part
+            statement.setString(4, diagnosis);
+            statement.setInt(5, adminID);
+            statement.executeUpdate();
 
         } catch (SQLException e) {
-            System.err.println("Error fetching administrator ID: " + e.getMessage());
+            System.err.println("Error creating admission table: " + e.getMessage());
             e.printStackTrace();
         }
-
-
-
-
     } // End of createAdmission
+
+    public String getDoctorDiagnosis() {
+        Scanner scan = new Scanner(System.in);
+        System.out.println("Enter patient diagnosis: ");
+
+        return scan.nextLine();
+    } // End of getDoctorDiagnosis
 
     // returns an int which is the admin id that will be used to set the fk of an admission
     public int assignAdmin(Connection connection) {
@@ -144,6 +154,55 @@ public class PrimaryCareDB {
         }
         return id;
     } // End of getRecentPatientID
+
+    public void showMyPatients(int doctorID) {
+        String sql = "SELECT " +
+                "    p.patient_id, " +
+                "    p.first_name AS patient_first_name, " +
+                "    p.last_name AS patient_last_name, " +
+                "    a.admission_date, " +
+                "    a.initial_diagnosis, " +
+                "    e.first_name AS doctor_first_name, " +
+                "    e.last_name AS doctor_last_name " +
+                "FROM " +
+                "    Admission a " +
+                "JOIN " +
+                "    Patient p ON a.patient_id = p.patient_id " +
+                "JOIN " +
+                "    Employee e ON a.primary_doctor_id = e.employee_id " +
+                "WHERE " +
+                "    e.role = 'Doctor' AND e.employee_id = ?;";
+
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            // Set the doctor ID parameter
+            statement.setInt(1, doctorID);
+
+            // Execute the query
+            try (ResultSet resultSet = statement.executeQuery()) {
+                System.out.println("Patients assigned to Doctor ID " + doctorID + ":");
+                while (resultSet.next()) {
+                    int patientId = resultSet.getInt("patient_id");
+                    String patientFirstName = resultSet.getString("patient_first_name");
+                    String patientLastName = resultSet.getString("patient_last_name");
+                    String admissionDate = resultSet.getString("admission_date");
+                    String initialDiagnosis = resultSet.getString("initial_diagnosis");
+                    String doctorFirstName = resultSet.getString("doctor_first_name");
+                    String doctorLastName = resultSet.getString("doctor_last_name");
+
+                    // Print to terminal
+                    System.out.printf("Patient ID: %d, Name: %s %s, Admission Date: %s, Diagnosis: %s, Doctor: %s %s%n",
+                            patientId, patientFirstName, patientLastName, admissionDate, initialDiagnosis,
+                            doctorFirstName, doctorLastName);
+                }
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error retrieving doctor's patients: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     // Needs more testing
     public boolean isHospitalFull() {
