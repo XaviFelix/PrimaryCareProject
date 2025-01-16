@@ -50,7 +50,7 @@ public class PrimaryCareDB {
 
             // Test this: ensures both
             patientID = getRecentPatientID(connection);
-            adminID = assignAdmin(connection);
+            adminID = assignMedicalStaff(connection);
             if(patientID == -1 && adminID == -1) {
                 System.out.println("Patient ID: " + patientID);
                 System.out.println("Admin ID: " + adminID);
@@ -165,25 +165,31 @@ public class PrimaryCareDB {
     } // End of getDoctorDiagnosis
 
     // returns an int which is the admin id that will be used to set the fk of an admission
-    public int assignAdmin(Connection connection) {
+    public int assignMedicalStaff(Connection connection) {
         int id = -1; // Returning this means something went wrong with the retrieval in sql statement
 
-        String adminIDSQL = "SELECT employee_id FROM employee WHERE role = 'Admin' ORDER BY RAND() LIMIT 1";
-        try(PreparedStatement statement = connection.prepareStatement(adminIDSQL);
+        // figure this one out
+        //String adminIDSQL = "SELECT employee_id FROM employee WHERE role = 'Admin' ORDER BY RAND() LIMIT 1";
+        String randomEmployeeSQL = "Select employee_id " +
+                                    "FROM employee " +
+                                    "WHERE role IN ('Doctor', 'Nurse', 'Technician') " +
+                                    "ORDER BY RAND() LIMIT 1";
+
+        try(PreparedStatement statement = connection.prepareStatement(randomEmployeeSQL);
             ResultSet resultSet = statement.executeQuery()) {
 
             if(resultSet.next()) {
                 id = resultSet.getInt("employee_id");
 
                 //Delete this after some testing
-                System.out.println("assignAdmin() -> This is the Admin id: " + id);
+                System.out.println("assignAdmin() -> This is the employee id: " + id);
             } else {
-                throw new SQLException("No administrators found in the databse");
+                throw new SQLException("No employee's found in the databse");
             }
             // test up to here for errors
 
         } catch (SQLException e) {
-            System.err.println("Error fetching administrator ID: " + e.getMessage());
+            System.err.println("Error fetching employee ID: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -225,7 +231,7 @@ public class PrimaryCareDB {
                 "    a.initial_diagnosis, " +
                 "    e.first_name AS doctor_first_name, " +
                 "    e.last_name AS doctor_last_name, " +
-                "    t.notes AS treatment_notes " + // Added treatment notes
+                "    t.notes AS treatment_notes " +
                 "FROM " +
                 "    Admission a " +
                 "JOIN " +
@@ -233,7 +239,7 @@ public class PrimaryCareDB {
                 "JOIN " +
                 "    Employee e ON a.primary_doctor_id = e.employee_id " +
                 "LEFT JOIN " +
-                "    Treatment t ON a.admission_id = t.admission_id " + // Join Treatment table
+                "    Treatment t ON a.admission_id = t.admission_id " +
                 "WHERE " +
                 "    e.role = 'Doctor' AND e.employee_id = ?;";
 
