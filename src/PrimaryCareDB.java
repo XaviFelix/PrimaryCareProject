@@ -78,22 +78,19 @@ public class PrimaryCareDB {
 
     // order a treatment for a patient given a patient ID
     // NEEDS TESTING
-    public void orderTreatment(int doctorID, int patientID) {
-        String medicationType = "Medication";
+    public void orderTreatment(int doctorID, int patientID, String treatmentType) {
         String notes = getDoctorNotes();
         String orderTreatmentSQL = "INSERT INTO " +
                 "treatment " +
                 "(treatment_type, notes, order_date, ordered_by_doctor_id, admission_id) " +
                 "VALUES (?, ?, NOW(), ?, ?)";
 
-
-
         try(Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
             PreparedStatement statement = connection.prepareStatement(orderTreatmentSQL)) {
 
             int admissionID = getAdmissionID(connection, patientID);
 
-            statement.setString(1, medicationType);
+            statement.setString(1, treatmentType);
             statement.setString(2, notes);
             statement.setInt(3, doctorID);
             statement.setInt(4, admissionID);

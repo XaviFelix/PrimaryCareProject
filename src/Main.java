@@ -85,7 +85,7 @@ public class Main {
             System.out.println("\nHere is a list of your db operations Doctor");
             System.out.println("1) Register a new patient"); //
             System.out.println("2) List all your patients");
-            System.out.println("3) Assign a non-primary doctor to your existing patient");
+            System.out.println("3) Assign a supporting doctor to your existing patient");
             System.out.println("4) Order and Perform treatment for your patient");
             System.out.println("5) Set discharge date of a patient");
             System.out.println("Press q to log out");
@@ -127,31 +127,45 @@ public class Main {
 
                     break;
                 case "2":
-                    System.out.println("Listing all your pateints\n");
+                    System.out.println("\nListing all your pateints\n");
                     database.showMyPatients(currentDoctorID);
                     break;
                 case "3":
-                    System.out.println("Assigning a non-primary doctor to your existing patient\n");
+                    System.out.println("\nAssigning a supporting doctor to your existing patient\n");
                     break;
                 case "4":
-                    System.out.println("Ordering and Perfroming treatment to your patient\n");
+                    System.out.println("\nOrdering and Perfroming treatment to your patient\n");
                     // This is gonna need a prompt that orders a treatment for a specific patient
                     // Doctor needs to input the patient ID for testing purposes:
                     // THe id I will be using is ID: 16
-
-                    database.orderTreatment(currentDoctorID, 8); // creates treatment_id, must be Medication, modified description
+                    String treatmentType = getTreatmentType(scan);
+                    database.orderTreatment(currentDoctorID, 8, treatmentType); // creates treatment_id, must be Medication, modified description
                     // database.performTreatment(); // creates treatment_id, must be Procedure, modify description
                     break;
                 case "5":
-                    System.out.println("Setting discharge date of a patient\n");
+                    System.out.println("\nSetting discharge date of a patient\n");
                     break;
                 case "q":
-                    System.out.println("Logging out, have a nice day!\n");
+                    System.out.println("\nLogging out, have a nice day!\n");
                     isRunning = false;
                     break;
                 default:
-                    System.out.println("Invalid option, please try again\n");
+                    System.out.println("\nInvalid option, please try again\n");
                     break;
+            }
+        }
+    }
+
+    // TEST
+    public static String getTreatmentType(Scanner scan) {
+        while (true) {
+            System.out.println("Enter treatment type (Procedure or Medication):");
+            String treatmentType = scan.nextLine().trim();
+
+            if (treatmentType.equalsIgnoreCase("Procedure") || treatmentType.equalsIgnoreCase("Medication")) {
+                return treatmentType.substring(0, 1).toUpperCase() + treatmentType.substring(1).toLowerCase();
+            } else {
+                System.out.println("Invalid treatment type. Please enter 'Procedure' or 'Medication'.");
             }
         }
     }
