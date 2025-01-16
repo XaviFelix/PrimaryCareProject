@@ -135,15 +135,17 @@ public class Main {
                     break;
                 case "4":
                     System.out.println("\nOrdering and Perfroming treatment to your patient\n");
-                    // This is gonna need a prompt that orders a treatment for a specific patient
-                    // Doctor needs to input the patient ID for testing purposes:
-                    // THe id I will be using is ID: 16
+                    System.out.println("Enter the ID of the patient you want to perform treatment to: ");
+                    int patientIdTreatment = choosePatientID(scan);
                     String treatmentType = getTreatmentType(scan);
-                    database.orderTreatment(currentDoctorID, 8, treatmentType); // creates treatment_id, must be Medication, modified description
-                    // database.performTreatment(); // creates treatment_id, must be Procedure, modify description
+                    database.orderTreatment(currentDoctorID, patientIdTreatment, treatmentType);
                     break;
                 case "5":
                     System.out.println("\nSetting discharge date of a patient\n");
+
+                    System.out.println("Enter the ID of the patient you want to discharge: ");
+                    int patientIdDischarge = choosePatientID(scan);
+                    database.dischargePatient(currentDoctorID, patientIdDischarge);
                     break;
                 case "q":
                     System.out.println("\nLogging out, have a nice day!\n");
@@ -168,6 +170,12 @@ public class Main {
                 System.out.println("Invalid treatment type. Please enter 'Procedure' or 'Medication'.");
             }
         }
+    }
+
+    // needs edge case where if the doctor inputs the wrong patient id
+    // add that later if there is time, for now choose id that will not break the program
+    public static int choosePatientID(Scanner scan) {
+        return Integer.parseInt(scan.nextLine());
     }
 
     // Set of operations for an Admin

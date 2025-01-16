@@ -76,6 +76,28 @@ public class PrimaryCareDB {
 
     } // End of insertNewPatient
 
+    // this discharges a patient
+    public void dischargePatient(int doctorID, int patientID) {
+        String dischargePatientSQL = "UPDATE admission " +
+                                     "SET " +
+                                     "discharge_date = NOW(), " +
+                                     "discharged_by_employee_id = admitted_by_employee_id " +
+                                     "WHERE " +
+                                     "admission_id = ?";
+
+        try(Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+            PreparedStatement statement = connection.prepareStatement(dischargePatientSQL)) {
+
+            int admissionID = getAdmissionID(connection, patientID);
+            statement.setInt(1, admissionID);
+            statement.executeUpdate();
+
+        } catch (SQLException e) {
+            System.err.println("Error discharging patient: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     // order a treatment for a patient given a patient ID
     // NEEDS TESTING
     public void orderTreatment(int doctorID, int patientID, String treatmentType) {
@@ -128,14 +150,14 @@ public class PrimaryCareDB {
             e.printStackTrace();
         }
         return id;
-    }
+    } // End of getAdmissionID
 
     public String getDoctorNotes() {
         Scanner scan = new Scanner(System.in);
         System.out.println("Enter treatment notes: ");
 
         return scan.nextLine();
-    }
+    } // End of getDoctorNotes
 
     public void createAdmission(Connection connection, int patientID, int roomNumber, int primaryDocID, int adminID) {
             String admissionSQL = "INSERT INTO admission (patient_id, room_number, admission_date, primary_doctor_id, initial_diagnosis, admitted_by_employee_id) "
