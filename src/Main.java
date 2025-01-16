@@ -84,7 +84,7 @@ public class Main {
             // Prompt
             System.out.println("\nHere is a list of your db operations Doctor");
             System.out.println("1) Register a new patient"); //
-            System.out.println("2) List all your patients");
+            System.out.println("2) List all your assigned admissions");
             System.out.println("3) Assign a supporting doctor to your existing patient");
             System.out.println("4) Order and Perform treatment for your patient");
             System.out.println("5) Set discharge date of a patient");
@@ -128,7 +128,7 @@ public class Main {
                     break;
                 case "2":
                     System.out.println("\nListing all your pateints\n");
-                    database.showMyPatients(currentDoctorID);
+                    database.showAssignedAdmissions(currentDoctorID);
                     break;
                 case "3":
                     System.out.println("\nAssigning a supporting doctor to your existing patient\n");

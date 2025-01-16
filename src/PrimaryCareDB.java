@@ -20,6 +20,8 @@ public class PrimaryCareDB {
             //return;
         }
 
+        // CHECK IF patient exists in the patient table
+
         // Get a vacant room number and then set it to occupied for the new patient to be inserted
         int vacantRoomNumber = getVacantRoomNumber();
         assignRoom(vacantRoomNumber);
@@ -87,6 +89,10 @@ public class PrimaryCareDB {
 
         try(Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
             PreparedStatement statement = connection.prepareStatement(dischargePatientSQL)) {
+
+            // Here make thier room vacant:
+            setRoomToVacant(patientID);
+
 
             int admissionID = getAdmissionID(connection, patientID);
             statement.setInt(1, admissionID);
@@ -244,34 +250,27 @@ public class PrimaryCareDB {
         return id;
     } // End of getRecentPatientID
 
-    public void showMyPatients(int doctorID) {
-        String sql = "SELECT " +
-                "    p.patient_id, " +
-                "    p.first_name AS patient_first_name, " +
-                "    p.last_name AS patient_last_name, " +
-                "    a.admission_date, " +
-                "    a.initial_diagnosis, " +
-                "    e.first_name AS doctor_first_name, " +
-                "    e.last_name AS doctor_last_name, " +
-                "    t.notes AS treatment_notes " +
-                "FROM " +
-                "    Admission a " +
-                "JOIN " +
-                "    Patient p ON a.patient_id = p.patient_id " +
-                "JOIN " +
-                "    Employee e ON a.primary_doctor_id = e.employee_id " +
-                "LEFT JOIN " +
-                "    Treatment t ON a.admission_id = t.admission_id " +
-                "WHERE " +
-                "    e.role = 'Doctor' AND e.employee_id = ?;";
+    public void showAssignedAdmissions(int doctorID) {
+        String assignedAdmissionsSQL = "SELECT " +
+                "p.patient_id, " +
+                "p.first_name AS patient_first_name, " +
+                "p.last_name AS patient_last_name, " +
+                "a.admission_date, " +
+                "a.initial_diagnosis, " +
+                "e.first_name AS doctor_first_name, " +
+                "e.last_name AS doctor_last_name, " +
+                "t.notes AS treatment_notes " +
+                "FROM admission a " +
+                "JOIN patient p ON a.patient_id = p.patient_id " +
+                "JOIN employee e ON a.primary_doctor_id = e.employee_id " +
+                "LEFT JOIN treatment t ON a.admission_id = t.admission_id " +
+                "WHERE e.role = 'Doctor' AND e.employee_id = ? AND a.discharge_date IS NULL";
 
         try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(assignedAdmissionsSQL)) {
 
-            // Set the doctor ID parameter
             statement.setInt(1, doctorID);
 
-            // Execute the query
             try (ResultSet resultSet = statement.executeQuery()) {
                 System.out.println("Patients assigned to Doctor ID " + doctorID + ":");
                 while (resultSet.next()) {
@@ -284,10 +283,10 @@ public class PrimaryCareDB {
                     String doctorLastName = resultSet.getString("doctor_last_name");
                     String treatmentNotes = resultSet.getString("treatment_notes");
 
-                    // Print to terminal
+                    // print
                     System.out.printf("Patient ID: %d, Name: %s %s, Admission Date: %s, Diagnosis: %s, Treatment Notes: %s, Doctor: %s %s%n",
                             patientId, patientFirstName, patientLastName, admissionDate, initialDiagnosis,
-                            (treatmentNotes != null ? treatmentNotes : "No treatment notes"), // Handle null notes
+                            (treatmentNotes != null ? treatmentNotes : "No treatment notes"),
                             doctorFirstName, doctorLastName);
                 }
             }
@@ -297,6 +296,31 @@ public class PrimaryCareDB {
             e.printStackTrace();
         }
     }
+
+    public void setRoomToVacant(int patientID) {
+        String setToUnoccupied = "UPDATE room r " +
+                "JOIN admission a ON r.room_number = a.room_number " +
+                "SET r.is_occupied = 0 " +
+                "WHERE a.patient_id = ?";
+
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement statement = connection.prepareStatement(setToUnoccupied)) {
+
+            statement.setInt(1, patientID);
+
+            int rowsUpdated = statement.executeUpdate();
+            if (rowsUpdated > 0) {
+                System.out.println("Room associated with patient ID " + patientID + " is now vacated.");
+            } else {
+                System.out.println("No room found for patient ID " + patientID + " to vacate.");
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error updating room status: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
 
 
 
