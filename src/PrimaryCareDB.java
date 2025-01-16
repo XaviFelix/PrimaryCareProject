@@ -114,6 +114,31 @@ public class PrimaryCareDB {
         }
     } // End of dischargePatient
 
+    // Test this
+    public void assignSupportingDoctor(int admissionID, int doctorID) {
+        String insertSupportingDoctorSQL = "INSERT INTO Supporting_Doctors (admission_id, doctor_id) VALUES (?, ?)";
+
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement statement = connection.prepareStatement(insertSupportingDoctorSQL)) {
+
+            // Set the parameters for the insert statement
+            statement.setInt(1, admissionID);
+            statement.setInt(2, doctorID);
+
+            // Execute the query
+            int rowsInserted = statement.executeUpdate();
+            if (rowsInserted > 0) {
+                System.out.println("Successfully assigned Doctor ID " + doctorID + " to Admission ID " + admissionID);
+            } else {
+                System.out.println("Failed to assign Doctor ID " + doctorID + " to Admission ID " + admissionID);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error assigning supporting doctor: " + e.getMessage());
+            e.printStackTrace();
+        }
+    } // End of assignSupportingDoctor
+
     public void orderTreatment(int doctorID, int patientID, String treatmentType) {
         // ask doctor for treatment notes
         String notes = getDoctorNotes();
@@ -261,6 +286,7 @@ public class PrimaryCareDB {
     public void showAssignedAdmissions(int doctorID) {
         // execute statement
         String assignedAdmissionsSQL = "SELECT " +
+                "a.admission_id, " +
                 "p.patient_id, " +
                 "p.first_name AS patient_first_name, " +
                 "p.last_name AS patient_last_name, " +
@@ -273,16 +299,20 @@ public class PrimaryCareDB {
                 "JOIN patient p ON a.patient_id = p.patient_id " +
                 "JOIN employee e ON a.primary_doctor_id = e.employee_id " +
                 "LEFT JOIN treatment t ON a.admission_id = t.admission_id " +
-                "WHERE e.role = 'Doctor' AND e.employee_id = ? AND a.discharge_date IS NULL";
+                "LEFT JOIN supporting_doctors sd ON a.admission_id = sd.admission_id " +
+                "WHERE (e.employee_id = ? OR sd.doctor_id = ?) " +
+                "AND a.discharge_date IS NULL";
 
         try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
              PreparedStatement statement = connection.prepareStatement(assignedAdmissionsSQL)) {
 
             statement.setInt(1, doctorID);
+            statement.setInt(2, doctorID);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 System.out.println("Patients assigned to Doctor ID " + doctorID + ":");
                 while (resultSet.next()) {
+                    int admissionID = resultSet.getInt("admission_id");
                     int patientId = resultSet.getInt("patient_id");
                     String patientFirstName = resultSet.getString("patient_first_name");
                     String patientLastName = resultSet.getString("patient_last_name");
@@ -293,8 +323,8 @@ public class PrimaryCareDB {
                     String treatmentNotes = resultSet.getString("treatment_notes");
 
                     // print to terminal
-                    System.out.printf("Patient ID: %d, Name: %s %s, Admission Date: %s, Diagnosis: %s, Treatment Notes: %s, Doctor: %s %s%n",
-                            patientId, patientFirstName, patientLastName, admissionDate, initialDiagnosis,
+                    System.out.printf("Admission ID: %d, Patient ID: %d, Name: %s %s, Admission Date: %s, Diagnosis: %s, Treatment Notes: %s, Primary Doctor: %s %s%n",
+                            admissionID, patientId, patientFirstName, patientLastName, admissionDate, initialDiagnosis,
                             (treatmentNotes != null ? treatmentNotes : "No treatment notes"),
                             doctorFirstName, doctorLastName);
                 }

@@ -54,7 +54,6 @@ public class Main {
 
     } // End of getEmployeeCredentials
 
-    // This will have a switch statement and depending on the role their operations vary
     public static void employeeDashboard(String[] employeeCredentials, PrimaryCareDB database) {
         System.out.println("\nWelcome to the White Memorial Primary Care Hospital");
         boolean isRunning = true;
@@ -76,7 +75,6 @@ public class Main {
         }
     } // End of employeeDashboard
 
-    // Set of operations for a Doctor
     public static void doctorDashboard(String[] employeeCredentials, Scanner scan, PrimaryCareDB database) {
         boolean isRunning = true;
         int currentDoctorID = Integer.parseInt(employeeCredentials[0]);
@@ -131,7 +129,12 @@ public class Main {
                     database.showAssignedAdmissions(currentDoctorID);
                     break;
                 case "3":
-                    System.out.println("\nAssigning a supporting doctor to your existing patient\n");
+                    // Needs testing
+                    System.out.println("\nAssigning a supporting doctor, enter admission id: ");
+                    int admissionID = Integer.parseInt(scan.nextLine());
+                    System.out.println("Enter a doctor id to assign: ");
+                    int doctorID = Integer.parseInt(scan.nextLine());
+                    database.assignSupportingDoctor(admissionID, doctorID);
                     break;
                 case "4":
                     System.out.println("\nOrdering and Perfroming treatment to your patient\n");
@@ -158,7 +161,6 @@ public class Main {
         }
     }
 
-    // TEST
     public static String getTreatmentType(Scanner scan) {
         while (true) {
             System.out.println("Enter treatment type (Procedure or Medication):");
@@ -172,8 +174,6 @@ public class Main {
         }
     }
 
-    // needs edge case where if the doctor inputs the wrong patient id
-    // add that later if there is time, for now choose id that will not break the program
     public static int choosePatientID(Scanner scan) {
         return Integer.parseInt(scan.nextLine());
     }
