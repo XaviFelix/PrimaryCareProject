@@ -8,78 +8,90 @@ public class PrimaryCareDB {
     private static final String USER = "root";
     private static final String PASSWORD = "12345";
 
-    // Needs more work, This is just a test function:
     public void insertNewPatient(int doctorID, String firstName, String lastName, String dob,
                                  String emergencyContactName, String emergencyContactPhone,
                                  String insurancePolicyNum) {
 
-        // CHECK IF HOSPITAL IS FULL FIRST (remove NOT operator after testing)
-        // SO that it doesn't insert a new patient and just returns
-        if(!isHospitalFull()){
-            System.out.println("The Hospital is not full");
-            //return;
+        // Check if the hospital is full
+        if (isHospitalFull()) {
+            System.out.println("The hospital is full. Cannot admit new patients.");
+            return;
         }
 
-        // CHECK IF patient exists in the patient table
+        // Check if the patient already exists
+        int patientID = findPatientID(firstName, lastName, dob);
 
-        // Get a vacant room number and then set it to occupied for the new patient to be inserted
-        int vacantRoomNumber = getVacantRoomNumber();
-        assignRoom(vacantRoomNumber);
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD)) {
+            // Patient doesn't exists
+            if (patientID == -1) {
+                System.out.println("Patient does not exist. Inserting new patient...");
 
-        // insert patient sql
-        int patientID = -2; // This means nothing was invoked
-        int adminID = -2; // This means nothing was invoked
-        String insertSQL = "INSERT INTO patient (first_name, last_name, dob, emergency_contact_name, emergency_contact_phone, insurance_policy_num) "
-                         + "VALUES (?, ?, ?, ?, ?, ?)";
+                // execute statement
+                String insertSQL = "INSERT INTO patient (first_name, last_name, dob, emergency_contact_name, emergency_contact_phone, insurance_policy_num) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement statement = connection.prepareStatement(insertSQL)) {
+                    statement.setString(1, firstName);
+                    statement.setString(2, lastName);
+                    statement.setString(3, dob);
+                    statement.setString(4, emergencyContactName);
+                    statement.setString(5, emergencyContactPhone);
+                    statement.setString(6, insurancePolicyNum);
 
-        // preparing and executing the statement via a successful connection
-        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement statement = connection.prepareStatement(insertSQL)) {
-
-            // Prepare the statement
-            statement.setString(1, firstName);
-            statement.setString(2, lastName);
-            statement.setString(3, dob);
-            statement.setString(4, emergencyContactName);
-            statement.setString(5, emergencyContactPhone);
-            statement.setString(6, insurancePolicyNum);
-
-            // executing operation
-            int rowsInserted = statement.executeUpdate();
-            if (rowsInserted > 0) {
-                System.out.println("A new patient was inserted successfully!");
+                    int rowsInserted = statement.executeUpdate();
+                    if (rowsInserted > 0) {
+                        System.out.println("A new patient was inserted successfully!");
+                    }
+                    patientID = getRecentPatientID(connection);
+                }
+            } else {
+                System.out.println("Patient already exists with ID: " + patientID);
+                System.out.println("Creating new admission for patient");
             }
 
-            // Test this: ensures both
-            patientID = getRecentPatientID(connection);
-            adminID = assignMedicalStaff(connection);
-            if(patientID == -1 && adminID == -1) {
-                System.out.println("Patient ID: " + patientID);
-                System.out.println("Admin ID: " + adminID);
-                throw new IllegalArgumentException("Retrieving ids resulted in a negative number");
-            }
+            // assign room
+            int vacantRoomNumber = getVacantRoomNumber();
+            assignRoom(vacantRoomNumber);
 
-            // Test this!!
+            // assign a medical staff
+            int adminID = assignMedicalStaff(connection);
+            if (adminID == -1) {
+                throw new IllegalArgumentException("Unable to assign an admin staff.");
+            }
+            // create admission
             createAdmission(connection, patientID, vacantRoomNumber, doctorID, adminID);
 
         } catch (SQLException e) {
-            System.err.println("Error creating a new patient: " + e.getMessage());
+            System.err.println("Error processing the patient admission: " + e.getMessage());
             e.printStackTrace();
         }
-
-        //Debug purposes, delete when confident
-        System.out.println("Current Patient ID: " + patientID);
-        System.out.println("Current Admin ID: " + adminID);
-        System.out.println("Current Doctor ID: " + doctorID);
-
-        // Here is where i create the admission details
-        // createAdmission() < - fill this in
-
-
     } // End of insertNewPatient
 
-    // this discharges a patient
-    public void dischargePatient(int doctorID, int patientID) {
+    private int findPatientID(String firstName, String lastName, String dob) {
+
+        // execute statement
+        String findPatientIdSQL = "SELECT patient_id FROM patient WHERE first_name = ? AND last_name = ? AND dob = ?";
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement statement = connection.prepareStatement(findPatientIdSQL)) {
+
+            statement.setString(1, firstName);
+            statement.setString(2, lastName);
+            statement.setString(3, dob);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getInt("patient_id");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error checking if patient exists: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return -1;
+
+    } // End of findPatientID
+
+    public void dischargePatient(int patientID) {
+        // execute statement
         String dischargePatientSQL = "UPDATE admission " +
                                      "SET " +
                                      "discharge_date = NOW(), " +
@@ -90,9 +102,7 @@ public class PrimaryCareDB {
         try(Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
             PreparedStatement statement = connection.prepareStatement(dischargePatientSQL)) {
 
-            // Here make thier room vacant:
             setRoomToVacant(patientID);
-
 
             int admissionID = getAdmissionID(connection, patientID);
             statement.setInt(1, admissionID);
@@ -102,12 +112,13 @@ public class PrimaryCareDB {
             System.err.println("Error discharging patient: " + e.getMessage());
             e.printStackTrace();
         }
-    }
+    } // End of dischargePatient
 
-    // order a treatment for a patient given a patient ID
-    // NEEDS TESTING
     public void orderTreatment(int doctorID, int patientID, String treatmentType) {
+        // ask doctor for treatment notes
         String notes = getDoctorNotes();
+
+        // execute statement
         String orderTreatmentSQL = "INSERT INTO " +
                 "treatment " +
                 "(treatment_type, notes, order_date, ordered_by_doctor_id, admission_id) " +
@@ -128,11 +139,12 @@ public class PrimaryCareDB {
             System.err.println("Error creating admission table: " + e.getMessage());
             e.printStackTrace();
         }
-    }
+    } // End of orderTreatment
 
     public int getAdmissionID(Connection connection, int patientID) {
-        int id = -1;
+        int id = -1; // id can't be negative, so error if encountered
 
+        // execute statement
         String patientIDSQL = "SELECT admission_id " +
                 "FROM admission " +
                 "WHERE patient_id = ? AND discharge_date IS NULL " +
@@ -146,6 +158,8 @@ public class PrimaryCareDB {
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     id = resultSet.getInt("admission_id");
+
+                    // debug purposes
                     System.out.println("getAdmissionID() -> Current retrieved admission ID: " + id);
                 } else {
                     System.out.println("No active admission found for patient ID: " + patientID);
@@ -166,15 +180,16 @@ public class PrimaryCareDB {
     } // End of getDoctorNotes
 
     public void createAdmission(Connection connection, int patientID, int roomNumber, int primaryDocID, int adminID) {
-            String admissionSQL = "INSERT INTO admission (patient_id, room_number, admission_date, primary_doctor_id, initial_diagnosis, admitted_by_employee_id) "
-                                   + "VALUES (?, ?, NOW(), ?, ?, ?)";
+        // execute statement
+        String admissionSQL = "INSERT INTO admission (patient_id, room_number, admission_date, primary_doctor_id, initial_diagnosis, admitted_by_employee_id) "
+                               + "VALUES (?, ?, NOW(), ?, ?, ?)";
 
         try(PreparedStatement statement = connection.prepareStatement(admissionSQL)) {
             String diagnosis = getDoctorDiagnosis();
 
             statement.setInt(1, patientID);
             statement.setInt(2, roomNumber);
-            statement.setInt(3, primaryDocID); // Test this part
+            statement.setInt(3, primaryDocID);
             statement.setString(4, diagnosis);
             statement.setInt(5, adminID);
             statement.executeUpdate();
@@ -194,10 +209,9 @@ public class PrimaryCareDB {
 
     // returns an int which is the admin id that will be used to set the fk of an admission
     public int assignMedicalStaff(Connection connection) {
-        int id = -1; // Returning this means something went wrong with the retrieval in sql statement
+        int id = -1; // returning this means something went wrong with the retrieval in sql statement
 
-        // figure this one out
-        //String adminIDSQL = "SELECT employee_id FROM employee WHERE role = 'Admin' ORDER BY RAND() LIMIT 1";
+        // execute statement
         String randomEmployeeSQL = "Select employee_id " +
                                     "FROM employee " +
                                     "WHERE role IN ('Doctor', 'Nurse', 'Technician') " +
@@ -209,13 +223,11 @@ public class PrimaryCareDB {
             if(resultSet.next()) {
                 id = resultSet.getInt("employee_id");
 
-                //Delete this after some testing
+                // debug purposes
                 System.out.println("assignAdmin() -> This is the employee id: " + id);
             } else {
                 throw new SQLException("No employee's found in the databse");
             }
-            // test up to here for errors
-
         } catch (SQLException e) {
             System.err.println("Error fetching employee ID: " + e.getMessage());
             e.printStackTrace();
@@ -225,11 +237,9 @@ public class PrimaryCareDB {
     } // End of assignAdmin
 
     // I can't forget that this mainly used for after inserting a new patient,
-    // on the same connection, using it in a different context might produce logic errors
-    // This is because of the sql statement im using, using it for convenience, it has its cons
-    // finsih tihs method
+    // on the same connection, using it in a different context might produce logic errors beware
     public int getRecentPatientID(Connection connection) {
-        int id = -1; // Returning this means something went wrong with the retrieval in sql statement
+        int id = -1; // returning this means something went wrong with the retrieval in sql statement
 
         String patientIDSQL = "SELECT LAST_INSERT_ID() AS patient_id";
         try(PreparedStatement statement = connection.prepareStatement(patientIDSQL);
@@ -238,11 +248,9 @@ public class PrimaryCareDB {
             if(resultSet.next()) {
                 id = resultSet.getInt("patient_id");
 
-                //Delete this after some testing
+                // debug purposes
                 System.out.println("getRecentPatientID() -> This is the patient's id: " + id);
             }
-            // test up to here for errors
-
         } catch (SQLException e) {
             System.err.println("Error fetching patient ID: " + e.getMessage());
             e.printStackTrace();
@@ -251,6 +259,7 @@ public class PrimaryCareDB {
     } // End of getRecentPatientID
 
     public void showAssignedAdmissions(int doctorID) {
+        // execute statement
         String assignedAdmissionsSQL = "SELECT " +
                 "p.patient_id, " +
                 "p.first_name AS patient_first_name, " +
@@ -283,7 +292,7 @@ public class PrimaryCareDB {
                     String doctorLastName = resultSet.getString("doctor_last_name");
                     String treatmentNotes = resultSet.getString("treatment_notes");
 
-                    // print
+                    // print to terminal
                     System.out.printf("Patient ID: %d, Name: %s %s, Admission Date: %s, Diagnosis: %s, Treatment Notes: %s, Doctor: %s %s%n",
                             patientId, patientFirstName, patientLastName, admissionDate, initialDiagnosis,
                             (treatmentNotes != null ? treatmentNotes : "No treatment notes"),
@@ -295,9 +304,10 @@ public class PrimaryCareDB {
             System.err.println("Error retrieving doctor's patients: " + e.getMessage());
             e.printStackTrace();
         }
-    }
+    } // showAssignedAdmissions
 
     public void setRoomToVacant(int patientID) {
+        // execute statement
         String setToUnoccupied = "UPDATE room r " +
                 "JOIN admission a ON r.room_number = a.room_number " +
                 "SET r.is_occupied = 0 " +
@@ -319,13 +329,10 @@ public class PrimaryCareDB {
             System.err.println("Error updating room status: " + e.getMessage());
             e.printStackTrace();
         }
-    }
+    } // End of setRoomToVacant
 
-
-
-
-    // Needs more testing
     public boolean isHospitalFull() {
+        // execute statement
         String findVacantRoomSQL = "SELECT COUNT(*) AS occupied_count FROM room WHERE is_occupied = 1";
 
         try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -335,7 +342,7 @@ public class PrimaryCareDB {
             if (resultSet.next()) {
                 int occupiedCount = resultSet.getInt("occupied_count");
 
-                //Debug purposes, delete when finished testing
+                //debug purposes
                 System.out.println("Number of occupied rooms: " + occupiedCount);
 
                 return occupiedCount == 20;
@@ -346,8 +353,8 @@ public class PrimaryCareDB {
         return false;
     } // End of isHospitalFull
 
-    // Needs some testing
     public int getVacantRoomNumber() {
+        // execute statement
         String findVacantRoomSQL = "SELECT room_number FROM room WHERE is_occupied = 0 LIMIT 1";
 
         try(Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -357,7 +364,7 @@ public class PrimaryCareDB {
             if(resultSet.next()) {
                 int vacantRoomNumber = resultSet.getInt("room_number");
 
-                // Debug line, delete when finished testing;
+                //debug purposes
                 System.out.println("Found a vacant room number: " + vacantRoomNumber);
 
                 return vacantRoomNumber;
@@ -372,6 +379,7 @@ public class PrimaryCareDB {
     } // End of getVacantRoomNumber
 
     public void assignRoom(int vacantRoomNumber) {
+        // execute statement
         String updateRoomSQL = "UPDATE room SET is_occupied = 1 WHERE room_number = ?";
 
         try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -390,48 +398,19 @@ public class PrimaryCareDB {
         }
     } // End of assignRoom
 
-
-    public void insertNewEmployee(String firstName, String lastName, String role,
-                                  String hireDate) {
-        // sql statement
-        String sql = "INSERT INTO Employee (first_name, last_name, role, hire_date) "
-                + "VALUES (?, ?, ?, ?)";
-
-        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.setString(1, firstName);
-            statement.setString(2, lastName);
-            statement.setString(3, role);
-            statement.setString(4, hireDate);
-
-            // executing operation
-            int rowsInserted = statement.executeUpdate();
-            if (rowsInserted > 0) {
-                System.out.println("A new employee was inserted successfully!");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error creating a new employee: " + e.getMessage());
-            e.printStackTrace();
-        }
-    } // End of insertNewEmployee
-
-    // Purpose: validates employee credentials ensuring they exist in the database
     public boolean verifyCredentials(String[] employeeCredentials) {
         int employee_id = Integer.parseInt(employeeCredentials[0]);
+
+        // execute statement
         String sql = "SELECT * FROM employee WHERE employee_id = ?";
 
         try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
-            // prepare the statement
             statement.setInt(1, employee_id);
-
-            // Execute the query
             ResultSet resultSet = statement.executeQuery();
 
             if(resultSet.next()) {
-                // validate
                 int employeeID = resultSet.getInt("employee_id");
                 String firstName = resultSet.getString("first_name");
                 String lastName = resultSet.getString("last_name");
@@ -447,15 +426,6 @@ public class PrimaryCareDB {
             System.err.println("Error creating a new employee: " + e.getMessage());
             e.printStackTrace();
         }
-
-
         return false;
     } // End of checkCredentials
-
-    // Debug Functions
-    public static void printArrayData(String[] currentData) {
-        for (String i : currentData) {
-            System.out.println(i);
-        }
-    }
 }

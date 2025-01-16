@@ -145,7 +145,7 @@ public class Main {
 
                     System.out.println("Enter the ID of the patient you want to discharge: ");
                     int patientIdDischarge = choosePatientID(scan);
-                    database.dischargePatient(currentDoctorID, patientIdDischarge);
+                    database.dischargePatient(patientIdDischarge);
                     break;
                 case "q":
                     System.out.println("\nLogging out, have a nice day!\n");
